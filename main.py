@@ -31,10 +31,10 @@ async def ingest_document(payload: IngestRequest):
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise HTTPException(status_code=500, detail="Supabase environment variables missing.")
 
-    # 1. Generate text embedding via Gemini (using model string compatible with current API)
+    # 1. Generate text embedding via Gemini using the current model identifier
     try:
         embed_response = genai.embed_content(
-            model="models/embedding-001",
+            model="text-embedding-004",
             content=payload.text
         )
         embedding = embed_response['embedding']
@@ -72,7 +72,7 @@ async def query_knowledge_base(payload: QueryRequest):
     # 1. Embed incoming question
     try:
         query_embed = genai.embed_content(
-            model="models/embedding-001",
+            model="text-embedding-004",
             content=payload.question
         )['embedding']
     except Exception as e:
