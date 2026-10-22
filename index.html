@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Knowledge Base Engine (RAG)</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 2rem; display: flex; flex-direction: column; align-items: center; }
+        .container { max-width: 800px; width: 100%; display: flex; flex-direction: column; gap: 2rem; }
+        .card { background: #1e293b; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; }
+        h1 { color: #38bdf8; text-align: center; }
+        h2 { margin-top: 0; color: #38bdf8; font-size: 1.25rem; }
+        textarea, input { width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 4px; box-sizing: border-box; margin-bottom: 1rem; }
+        button { background: #0284c7; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0369a1; }
+        .response { background: #0f172a; padding: 1rem; border-radius: 4px; margin-top: 1rem; border-left: 4px solid #38bdf8; white-space: pre-wrap; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cloud Vector RAG Engine</h1>
+        
+        <div class="card">
+            <h2>1. Ingest Document Knowledge</h2>
+            <textarea id="ingestText" rows="3" placeholder="Enter custom paragraph or knowledge base text to convert into vector embeddings..."></textarea>
+            <button onclick="ingestData()">Ingest Knowledge</button>
+            <div id="ingestResult" class="response" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+            <h2>2. Vector Search & Grounded Query</h2>
+            <input type="text" id="queryText" placeholder="Ask a factual question based on your stored vectors...">
+            <button onclick="queryData()">Run RAG Search</button>
+            <div id="queryResult" class="response" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = "https://cloud-rag-engine.onrender.com";
+
+        async function ingestData() {
+            const text = document.getElementById('ingestText').value;
+            const resDiv = document.getElementById('ingestResult');
+            resDiv.style.display = 'block';
+            resDiv.innerText = "Generating 3072-dim embeddings & saving to Supabase...";
+
+            try {
+                const res = await fetch(`${BACKEND_URL}/ingest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text, source: "web-ui" })
+                });
+                const data = await res.json();
+                resDiv.innerText = JSON.stringify(data, null, 2);
+            } catch (err) {
+                resDiv.innerText = "Error: " + err.message;
+            }
+        }
+
+        async function queryData() {
+            const question = document.getElementById('queryText').value;
+            const resDiv = document.getElementById('queryResult');
+            resDiv.style.display = 'block';
+            resDiv.innerText = "Executing Cosine Similarity search & generating answer...";
+
+            try {
+                const res = await fetch(`${BACKEND_URL}/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: question })
+                });
+                const data = await res.json();
+                resDiv.innerText = `Answer:\n${data.answer}\n\nRetrieved Vector Context:\n${JSON.stringify(data.context_used, null, 2)}`;
+            } catch (err) {
+                resDiv.innerText = "Error: " + err.message;
+            }
+        }
+    </script>
+</body>
+</html>
