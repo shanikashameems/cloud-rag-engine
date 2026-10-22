@@ -6,7 +6,6 @@ import google.generativeai as genai
 
 app = FastAPI(title="Cloud Vector RAG Engine")
 
-# Read environment variables
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -28,14 +27,14 @@ def health_check():
 
 @app.post("/ingest")
 async def ingest_document(payload: IngestRequest):
-    """Generates a 768-dim embedding and saves text to Supabase vector DB."""
+    """Generates a text embedding and saves text to Supabase vector DB."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise HTTPException(status_code=500, detail="Supabase environment variables missing.")
 
-    # 1. Generate text embedding via Gemini
+    # 1. Generate text embedding via Gemini (using model string compatible with current API)
     try:
         embed_response = genai.embed_content(
-            model="models/text-embedding-004",
+            model="models/embedding-001",
             content=payload.text
         )
         embedding = embed_response['embedding']
@@ -73,7 +72,7 @@ async def query_knowledge_base(payload: QueryRequest):
     # 1. Embed incoming question
     try:
         query_embed = genai.embed_content(
-            model="models/text-embedding-004",
+            model="models/embedding-001",
             content=payload.question
         )['embedding']
     except Exception as e:
