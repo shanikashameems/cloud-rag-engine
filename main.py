@@ -1,10 +1,20 @@
 import os
 import requests
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import google.generativeai as genai
 
 app = FastAPI(title="Cloud Vector RAG Engine")
+
+# Enable CORS for browser access
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -27,11 +37,9 @@ def health_check():
 
 @app.post("/ingest")
 async def ingest_document(payload: IngestRequest):
-    """Generates a text embedding using gemini-embedding-001 and saves text to Supabase."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise HTTPException(status_code=500, detail="Supabase environment variables missing.")
 
-    # 1. Generate text embedding via Gemini using gemini-embedding-001
     try:
         embed_response = genai.embed_content(
             model="models/gemini-embedding-001",
@@ -41,7 +49,6 @@ async def ingest_document(payload: IngestRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gemini Embedding failed: {str(e)}")
 
-    # 2. Store content + embedding vector in Supabase via REST API
     headers = {
         "apikey": SUPABASE_KEY,
         "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -65,11 +72,9 @@ async def ingest_document(payload: IngestRequest):
 
 @app.post("/query")
 async def query_knowledge_base(payload: QueryRequest):
-    """Executes vector similarity search and answers using Gemini RAG."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise HTTPException(status_code=500, detail="Supabase environment variables missing.")
 
-    # 1. Embed incoming question
     try:
         query_embed = genai.embed_content(
             model="models/gemini-embedding-001",
@@ -78,7 +83,6 @@ async def query_knowledge_base(payload: QueryRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query embedding failed: {str(e)}")
 
-    # 2. Run vector cosine search RPC query in Supabase
     headers = {
         "apikey": SUPABASE_KEY,
         "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -101,7 +105,6 @@ async def query_knowledge_base(payload: QueryRequest):
     retrieved_chunks = [item['content'] for item in matches] if matches else []
     context_str = "\n---\n".join(retrieved_chunks) if retrieved_chunks else "No relevant context found."
 
-    # 3. Construct RAG prompt and answer
     prompt = (
         "You are an expert AI knowledge assistant. Answer the user's question relying strictly on the retrieved database context below.\n"
         "If the answer is not contained in the context, clearly state that the information is unavailable in the database.\n\n"
@@ -115,4 +118,3 @@ async def query_knowledge_base(payload: QueryRequest):
         "answer": answer.text,
         "context_used": retrieved_chunks
     }
-    
