@@ -27,14 +27,14 @@ def health_check():
 
 @app.post("/ingest")
 async def ingest_document(payload: IngestRequest):
-    """Generates a text embedding and saves text to Supabase vector DB."""
+    """Generates a text embedding using gemini-embedding-001 and saves text to Supabase."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise HTTPException(status_code=500, detail="Supabase environment variables missing.")
 
-    # 1. Generate text embedding via Gemini using the current model identifier
+    # 1. Generate text embedding via Gemini using gemini-embedding-001
     try:
         embed_response = genai.embed_content(
-            model="text-embedding-004",
+            model="models/gemini-embedding-001",
             content=payload.text
         )
         embedding = embed_response['embedding']
@@ -72,7 +72,7 @@ async def query_knowledge_base(payload: QueryRequest):
     # 1. Embed incoming question
     try:
         query_embed = genai.embed_content(
-            model="text-embedding-004",
+            model="models/gemini-embedding-001",
             content=payload.question
         )['embedding']
     except Exception as e:
@@ -115,3 +115,4 @@ async def query_knowledge_base(payload: QueryRequest):
         "answer": answer.text,
         "context_used": retrieved_chunks
     }
+    
